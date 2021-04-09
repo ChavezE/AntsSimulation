@@ -8,10 +8,12 @@ x_limit_px = 1000
 y_limit_px = 750
 
 
-EMPTY = [0,0,0]
-ANT_SKIN = [0,255,255]
+BACKGROUND_COLOR = [0,0,0]
+ANT_SKIN = [255,255,255]
 INITAL_ANT_COUNT = 15
-world_matrix = np.zeros((y_limit_px, x_limit_px, 3),dtype=np.uint8)
+world_matrix = np.ones((y_limit_px, x_limit_px, 3),dtype=np.uint8) 
+world_matrix[:] = BACKGROUND_COLOR
+
 ANT_STEP_SIZE = 3
 VERBOSE = False
 
@@ -68,8 +70,8 @@ def removeAnt(y,x):
     for Point in ANT_BODY:
         yTemp = y + Point[0]
         xTemp = x + Point[1]
-        world_matrix[yTemp , xTemp] = EMPTY
-        world_matrix[yTemp, xTemp] = EMPTY
+        world_matrix[yTemp , xTemp] = BACKGROUND_COLOR
+        world_matrix[yTemp, xTemp] = BACKGROUND_COLOR
 
 def moveAnt(y_init, x_init, y_final, x_final):
     if (x_init > x_limit_px or y_init > y_limit_px or x_final > x_limit_px or y_final > y_limit_px):
@@ -105,6 +107,7 @@ def chooseRandomMove(y_init, x_init, verbose):
     elif (move == AntDirection.SW.value):
         return y_init + ANT_STEP_SIZE, x_init - ANT_STEP_SIZE
 
+# TODO: we need to consider ants morphology here
 def isValidMove(y,x):
     return y < y_limit_px and y >= 0 and x < x_limit_px and x >= 0 
 
@@ -128,14 +131,14 @@ def main():
     for i in range (INITAL_ANT_COUNT):
         antColony.append(Ant(y_init, x_init, i))
 
-
     # run simulation
+    #
     while True:
         # update all ants
         for ant in antColony:
-            print ("Ant id: ", ant.id)
-            print ("Ant y: ", ant.y)
-            print ("Ant x: ", ant.x)
+            # print ("Ant id: ", ant.id)
+            # print ("Ant y: ", ant.y)
+            # print ("Ant x: ", ant.x)
             y_cur = ant.y
             x_cur = ant.x
 
@@ -144,7 +147,7 @@ def main():
             # make a random move.
             y_next, x_next = chooseRandomMove(y_cur, x_cur, VERBOSE)
             
-            print ("x_cur:", x_cur, " y_cur:", y_cur, " x_next:", x_next, " y_next:", y_next)
+            # print ("x_cur:", x_cur, " y_cur:", y_cur, " x_next:", x_next, " y_next:", y_next)
             # only move if the position is valid
             if (isValidMove(y_next, x_next)):
                 moveAnt(y_cur, x_cur, y_next, x_next)
@@ -153,14 +156,16 @@ def main():
                 ant.y = y_next
                 ant.x = x_next
 
-        showAntColonyStats(antColony)
+        # showAntColonyStats(antColony)
     
         cv2.imshow("World", world_matrix)
-        k = cv2.waitKey(10)
+        k = cv2.waitKey(25)
+        print (k)    
 
         # press 'c' to exit.
         if (k == 99):
             break
+
 
     cv2.destroyAllWindows()
 
