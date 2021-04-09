@@ -9,11 +9,21 @@ y_limit_px = 750
 
 
 EMPTY = [0,0,0]
-ANT_SKIN = [255,255,255]
+ANT_SKIN = [0,255,255]
 INITAL_ANT_COUNT = 15
 world_matrix = np.zeros((y_limit_px, x_limit_px, 3),dtype=np.uint8)
 ANT_STEP_SIZE = 3
 VERBOSE = False
+
+# Pixel wise cardinal reference for Ants based on inital point (y,x)
+ANT_BODY = [(0,0),(-1,0), (-2,0), (-3,0), (1,0), (0,-1), (0,1)]
+"""
+        x
+        x
+        x
+     x (0) x
+        x
+"""
 
 class Ant:
     def __init__(self, y, x, idd):
@@ -48,16 +58,25 @@ def drawAnt(y,x):
         raise Exception("Ant is going off limits")
 
     # draw the and in the world mat
-    world_matrix[y,x] = ANT_SKIN
-    world_matrix[y-1,x] = ANT_SKIN
+    for Point in ANT_BODY:
+        yTemp = y + Point[0]
+        xTemp = x + Point[1]
+        world_matrix[yTemp , xTemp] = ANT_SKIN
+        world_matrix[yTemp, xTemp] = ANT_SKIN
+
+def removeAnt(y,x):
+    for Point in ANT_BODY:
+        yTemp = y + Point[0]
+        xTemp = x + Point[1]
+        world_matrix[yTemp , xTemp] = EMPTY
+        world_matrix[yTemp, xTemp] = EMPTY
 
 def moveAnt(y_init, x_init, y_final, x_final):
     if (x_init > x_limit_px or y_init > y_limit_px or x_final > x_limit_px or y_final > y_limit_px):
         raise Exception("Ant is going off limits")
     
     # remove ant from old place
-    world_matrix[y_init, x_init] = EMPTY
-    world_matrix[y_init-1, x_init] = EMPTY
+    removeAnt(y_init, x_init)
 
     # draw ant in new place
     drawAnt(y_final, x_final)
