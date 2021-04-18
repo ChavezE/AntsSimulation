@@ -1,63 +1,44 @@
 import cv2
 import numpy as np
 import random
-from enum import Enum, auto
+from enum import Enum
 
-# globals
+from utils import Point, Direction
+from ant import Ant
+
+#
+# Globals
+#
+LOG = False
+
+# inital position
+x_init = 100
+y_init = 50
+
+# make an colony of ants
+antColony = []
+
+
+# Frame limits
 x_limit_px = 1000
-y_limit_px = 750
+y_limit_px = 500
 
-
+# Frame colors
 BACKGROUND_COLOR = [0,0,0]
-ANT_SKIN = [255,255,255]
-INITAL_ANT_COUNT = 15
+
+# World Customization
+INITAL_ANT_COUNT = 100
 world_matrix = np.ones((y_limit_px, x_limit_px, 3),dtype=np.uint8) 
 world_matrix[:] = BACKGROUND_COLOR
+ANT_STEP_SIZE = 1
+ANT_BODY = [(0,0),(1,0),(-1,0),(0,1),(0,-1)]
+assert ANT_BODY[0][0] == 0
+assert ANT_BODY[0][1] == 0
+ANT_SKIN = [255,255,255]
 
-ANT_STEP_SIZE = 3
-VERBOSE = False
-
-# Pixel wise cardinal reference for Ants based on inital point (y,x)
-ANT_BODY = [(0,0),(-1,0), (-2,0), (-3,0), (1,0), (0,-1), (0,1)]
-"""
-        x
-        x
-        x
-     x (0) x
-        x
-"""
-
-class Ant:
-    def __init__(self, y, x, idd):
-        self.y = y
-        self.x = x
-        self.id = idd
-
-class AntDirection(Enum):
-    FIRST = 0
-    N = FIRST
-    S = auto()
-    W = auto()
-    E = auto()
-    NE = auto()
-    NW = auto()
-    SE = auto()
-    SW = auto()
-    LAST = SW
-"""
-reference
-    NW        N         NE
-        :------------:
-        | ants world |
-    W   |            |   E
-        |            |
-        :------------:
-    SW        S         SE
-"""
-
-def drawAnt(y,x):
-    if (x  > x_limit_px or y > y_limit_px):
-        raise Exception("Ant is going off limits")
+def drawAntInWorld(ant):
+    x = ant.pos.x 
+    y = ant.pos.y
 
     # draw the and in the world mat
     for Point in ANT_BODY:
@@ -66,107 +47,93 @@ def drawAnt(y,x):
         world_matrix[yTemp , xTemp] = ANT_SKIN
         world_matrix[yTemp, xTemp] = ANT_SKIN
 
-def removeAnt(y,x):
+def removeAntFromWorld(obj):
+    if (type(obj) == type(Ant)):
+        x = obj.pos.x 
+        y = obj.pos.y
+    else:
+        x = obj.x 
+        y = obj.y
+
     for Point in ANT_BODY:
         yTemp = y + Point[0]
         xTemp = x + Point[1]
         world_matrix[yTemp , xTemp] = BACKGROUND_COLOR
         world_matrix[yTemp, xTemp] = BACKGROUND_COLOR
 
-def moveAnt(y_init, x_init, y_final, x_final):
-    if (x_init > x_limit_px or y_init > y_limit_px or x_final > x_limit_px or y_final > y_limit_px):
-        raise Exception("Ant is going off limits")
-    
-    # remove ant from old place
-    removeAnt(y_init, x_init)
-
-    # draw ant in new place
-    drawAnt(y_final, x_final)
-
 # return next coords
-def chooseRandomMove(y_init, x_init, verbose):
-    move = random.randint(AntDirection.FIRST.value, AntDirection.LAST.value)
-
-    if (verbose):
-        print (move)
-
-    if (move == AntDirection.N.value):
-        return y_init - ANT_STEP_SIZE, x_init
-    elif (move == AntDirection.S.value):
-        return y_init + ANT_STEP_SIZE, x_init
-    elif (move == AntDirection.W.value):
-        return y_init, x_init - ANT_STEP_SIZE
-    elif (move == AntDirection.E.value):
-        return y_init, x_init + ANT_STEP_SIZE
-    elif (move == AntDirection.NE.value):
-        return y_init - ANT_STEP_SIZE, x_init + ANT_STEP_SIZE
-    elif (move == AntDirection.NW.value):
-        return y_init - ANT_STEP_SIZE , x_init - ANT_STEP_SIZE
-    elif (move == AntDirection.SE.value):
-        return y_init + ANT_STEP_SIZE, x_init + ANT_STEP_SIZE
-    elif (move == AntDirection.SW.value):
-        return y_init + ANT_STEP_SIZE, x_init - ANT_STEP_SIZE
+def nextPointFromDirection(point, direction):
+    if (direction == Direction.N.value):
+        return Point(point.y - ANT_STEP_SIZE, point.x )
+    elif (direction == Direction.S.value):
+        return Point(point.y + ANT_STEP_SIZE, point.x )
+    elif (direction == Direction.W.value):
+        return Point(point.y, point.x  - ANT_STEP_SIZE)
+    elif (direction == Direction.E.value):
+        return Point(point.y, point.x  + ANT_STEP_SIZE)
+    elif (direction == Direction.NE.value):
+        return Point(point.y - ANT_STEP_SIZE, point.x  + ANT_STEP_SIZE)
+    elif (direction == Direction.NW.value):
+        return Point(point.y - ANT_STEP_SIZE , point.x  - ANT_STEP_SIZE)
+    elif (direction == Direction.SE.value):
+        return Point(point.y + ANT_STEP_SIZE, point.x  + ANT_STEP_SIZE)
+    else:
+        return Point(point.y + ANT_STEP_SIZE, point.x  - ANT_STEP_SIZE)
 
 # TODO: we need to consider ants morphology here
-def isValidMove(y,x):
-    return y < y_limit_px and y >= 0 and x < x_limit_px and x >= 0 
-
+def isValidPoint(point):
+    return (point.y < y_limit_px - 5) and point.y > 5 and (point.x < x_limit_px - 5) and point.x > 5
 
 def showAntColonyStats(antColony):
     for ant in antColony:
-        print (ant.y, " , ", ant.x)
+        print ("\t Ant id: ", ant.id, "\t (", ant.pos.y, ",", ant.pos.x, ")", "\t direction: ", ant.direction)
 
 def main():
-    
-    for direction in AntDirection:
-        print (direction, " : ", direction.value)
 
-    # inital position
-    x_init = 100
-    y_init = 500
-
-    # make an colony of ants
-    # for now each ant is just a Point()
-    antColony = []
+    # Initialice Ant colony.
     for i in range (INITAL_ANT_COUNT):
-        antColony.append(Ant(y_init, x_init, i))
+        antColony.append(Ant(Point(y_init,x_init), i))
 
     # run simulation
     #
     while True:
         # update all ants
-        for ant in antColony:
-            # print ("Ant id: ", ant.id)
-            # print ("Ant y: ", ant.y)
-            # print ("Ant x: ", ant.x)
-            y_cur = ant.y
-            x_cur = ant.x
+        for ant in antColony:            
+            # safe the current position
+            prevPos= ant.pos
 
-            drawAnt(y_cur,x_cur)
+            # make a move
+            direction = ant.chooseNextDirection()
 
-            # make a random move.
-            y_next, x_next = chooseRandomMove(y_cur, x_cur, VERBOSE)
+            nextPoint = nextPointFromDirection(ant.pos, direction)
             
-            # print ("x_cur:", x_cur, " y_cur:", y_cur, " x_next:", x_next, " y_next:", y_next)
-            # only move if the position is valid
-            if (isValidMove(y_next, x_next)):
-                moveAnt(y_cur, x_cur, y_next, x_next)
-                
+            if (isValidPoint(nextPoint)):                
                 # update ant pos
-                ant.y = y_next
-                ant.x = x_next
+                ant.MoveFromDirection(direction)
+                ant.direction = direction
+                
+                # draw the current position
+                drawAntInWorld(ant)
+            
+            else:
+                # make the ant turn around
+                dirr = ant.chooseNextDirection(4) # 4 = turn back
+                ant.MoveFromDirection(dirr)
+                ant.direction = dirr
 
-        # showAntColonyStats(antColony)
+            # remove the ant from previous pos
+            removeAntFromWorld(prevPos)
+        
+        if (LOG):
+            showAntColonyStats(antColony)
     
         cv2.imshow("World", world_matrix)
-        k = cv2.waitKey(25)
-        print (k)    
+        k = cv2.waitKey(5)
 
         # press 'c' to exit.
         if (k == 99):
             break
-
-
+        
     cv2.destroyAllWindows()
 
 # call main func
